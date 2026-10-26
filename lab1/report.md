@@ -1,6 +1,6 @@
 # Lab 1: The OS as a Resource Manager
 
-**Student:** _Name Surname_, FAF-24x
+**Student:** Augustin Carazanu, FAF-243
 **Track:** A (Linux) on an Ubuntu 24.04.3 ARM64 VM (Parallels, Apple Silicon)
 
 ## Setup
