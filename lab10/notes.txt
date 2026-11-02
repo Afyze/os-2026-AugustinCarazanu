@@ -1,0 +1,29 @@
+Lab 10 - Add a System Call: trace (xv6, rev 06aad25)
+Augustin Carazanu, FAF-243
+
+Observe 1. In "trace 32 grep hello README" why do you see only read, and not open or close?
+The mask 32 is 2^5, so only bit 5 is on, and 5 is SYS_read. After every system call the kernel checks
+(p->trace_mask >> num) & 1 and prints the line only when the bit of that call is on. grep still calls
+open and close (Figure 3.1, with all bits on, shows "open -> 3" and "close -> 0"), but bits 15 and 21
+are off in mask 32, so those two calls are done silently. The four read lines (1023, 965, 453, 0) are the
+file README read in pieces; the last 0 means end of file.
+
+Observe 2. In forkforkfork, three different pids print lines. Which line of code from Part 2 makes that possible?
+np->trace_mask = p->trace_mask;  in kfork() (kernel/proc.c). fork creates the child as a copy of the
+parent, and this line copies the mask too. So every child (and grandchild) has the same mask as the
+parent and prints its own fork calls under its own pid. Without this line only the first process would
+print. In my run (Figure 3.2) even more than three pids appear (5, 6, 7, 8, 9, 10, 32, 43, ...),
+because every child keeps forking.
+
+Observe 3. In "trace 65536 echo hi" the trace line is printed between "hi" and the new line. Why? How many times does echo call write?
+echo calls write twice: first for the text "hi" (2 bytes, returns 2), then for the new line character
+(1 byte, returns 1). The kernel prints the trace line right after each call has finished. After the first
+write the screen already shows "hi", so "67: syscall write -> 2" is printed directly after it, on the same
+line. The "\n" at the end of the trace line ends that line; then the second write of echo outputs its own
+new line, which is why an empty line follows; then the trace line of the second write is printed
+("67: syscall write -> 1"). The trace line is between "hi" and the new line of echo.
+
+Observe 4. Which mask traces both open (15) and close (21), and nothing else?
+2^15 + 2^21 = 32768 + 2097152 = 2129920. Command: trace 2129920 grep hello README. Output (Figure 3.4):
+68: syscall open -> 3
+68: syscall close -> 0
