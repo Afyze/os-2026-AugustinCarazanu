@@ -3,7 +3,7 @@
 **Student:** Augustin Carazanu, FAF-243
 **Environment:** Ubuntu 24.04.3 ARM64 in Parallels, xv6-riscv (course revision 06aad25), folder `~/xv6-riscv`
 
-All changes of xv6 are in `lab10.patch` (a diff against revision 06aad25). The user program is `trace.c`; the answers are in `notes.txt`.
+All changes of xv6 are in `lab10.patch` (a diff against revision 06aad25). The user program is `trace.c`; the changed xv6 files are in this folder too (`syscall.h`, `syscall.c`, `sysproc.c`, `proc.h`, `proc.c`, `user.h`, `usys.pl`, and a `Makefile` with only the `$U/_trace\` line added); the answers are in `notes.txt`.
 
 Two differences from the MIT instructions: in our tree number 22 is already `sync`, so the new call is **23**, and the kernel print function is `printk`, not `printf`.
 
