@@ -1,0 +1,40 @@
+Lab 13 - Semaphores in Your Own Kernel (xv6, rev 06aad25 + trace from Lab 10)
+Augustin Carazanu, FAF-243
+
+Observe 1. Without the lock, why do the letters mix? (How many system calls does one line cost?)
+One line costs 31 system calls: mix.c calls write(1, p, 1) once for every letter, 30 letters plus the
+new line. xv6 runs on 3 CPUs (make qemu -smp 3), so the parent and the child really run at the same time,
+and between any two write() calls of one process the other process can put its own letters on the
+console. Each single write() is done whole, but nothing keeps the 31 writes of one line together, so the
+lines come out mixed, and differently at every run (Figure 3.1: two runs, two different mixes).
+
+Observe 2. With the lock every line is whole. Which two lines of mix.c make one line a critical section?
+    if (uselock)
+      sem_down(3);
+before the loop that writes the letters, and
+    if (uselock)
+      sem_up(3);
+after it. Semaphore 3 is started with sem_init(3, 1), so it is a lock: the process that passes
+sem_down(3) takes the only unit, and the other one sleeps in sem_down until the line is finished and
+sem_up(3) gives the unit back. The 31 writes of one line are now a critical section.
+
+Observe 3. In sem_down the test is "while (s->value == 0)", not "if". Why can a process wake up and
+still find 0?
+Because being woken up does not mean the unit is still free. wakeup(s) wakes every process that sleeps
+on s, but only one unit was given back, so only one of them can take it; the others must check again and
+sleep again. And between wakeup and the moment the woken process takes s->lock again, another process can
+call sem_down and take the unit first. That is exactly what happened in "mix lock" (Figure 3.2): the parent
+gives the lock back with sem_up(3) and wakes the child, but it loops at once to sem_down(3) and takes the
+unit again before the child runs, so all 5 A lines came first and only then the 5 b lines. The child woke
+up several times, found value 0 and went back to sleep; with "if" it would have decremented value to -1
+and entered the critical section together with the parent.
+
+Observe 4. sem_down calls release(&s->lock) BEFORE sleep(). What would go wrong if it slept holding the
+spinlock?
+Nobody could ever wake it up. sem_up must acquire the same s->lock to add 1 and call wakeup(s), so it
+would spin forever waiting for a lock that belongs to a sleeping process: a deadlock (and a spinning CPU
+with interrupts off). In our xv6 it does not even get that far: sleep() calls sched(), which checks that
+the process holds only its own p->lock (mycpu()->noff != 1) and stops the kernel with panic("sched locks").
+The order sleep_prepare(s), release(&s->lock), sleep() is safe because sleep_prepare already registered s;
+if sem_up comes between release and sleep, wakeup clears p->chan and sleep() returns at once, so the
+wake-up is not lost.
